@@ -6,6 +6,7 @@ import { ChatBubbleAI } from "@/components/ChatBubbleAI"
 import { InputBar } from "@/components/InputBar"
 import { SQLResultViewer } from "@/components/SQLResultViewer"
 import { Sparkles } from "lucide-react"
+import { sendQuery, getDefaultConnection, type DatabaseConfig } from "@/lib/api"
 
 interface Message {
   id: string
@@ -14,15 +15,6 @@ interface Message {
   sql?: string
   timestamp: string
 }
-
-// Mock data for demonstration
-const mockResults = [
-  { customerName: "Atelier graphique", country: "France", creditLimit: "21000.00" },
-  { customerName: "La Rochelle Gifts", country: "France", creditLimit: "118200.00" },
-  { customerName: "Euro+ Shopping Channel", country: "Spain", creditLimit: "227600.00" },
-  { customerName: "Saveley & Henriot, Co.", country: "France", creditLimit: "123900.00" },
-  { customerName: "Diecast Classics Inc.", country: "USA", creditLimit: "100600.00" },
-]
 
 export default function AskQueryPage() {
   const [messages, setMessages] = useState<Message[]>([
@@ -34,6 +26,9 @@ export default function AskQueryPage() {
     },
   ])
   const [showResults, setShowResults] = useState(false)
+  const [queryResults, setQueryResults] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [currentSql, setCurrentSql] = useState<string>("")
 
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
@@ -44,22 +39,71 @@ export default function AskQueryPage() {
     }
 
     setMessages((prev) => [...prev, userMessage])
+    setIsLoading(true)
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiMessage: Message = {
+    // Get database connection from settings
+    const connection = getDefaultConnection()
+
+    try {
+      const response = await sendQuery(content, connection)
+
+      if (response.error) {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: "ai",
+          content: `Error: ${response.error}`,
+          timestamp: new Date().toLocaleTimeString(),
+        }
+        setMessages((prev) => [...prev, errorMessage])
+      } else {
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: "ai",
+          content: "I've generated the SQL query based on your question. Here's what I came up with:",
+          sql: response.sql || "",
+          timestamp: new Date().toLocaleTimeString(),
+        }
+        setMessages((prev) => [...prev, aiMessage])
+        
+        // Store results and SQL for display
+        if (response.data) {
+          setQueryResults(response.data)
+          setCurrentSql(response.sql || "")
+          setShowResults(true)
+        }
+      }
+    } catch (error) {
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "ai",
-        content: "I've generated the SQL query based on your question. Here's what I came up with:",
-        sql: `SELECT customerName, country, creditLimit\nFROM customers\nWHERE country = 'France'\nORDER BY creditLimit DESC\nLIMIT 5;`,
+        content: `Failed to process query: ${error instanceof Error ? error.message : 'Unknown error'}`,
         timestamp: new Date().toLocaleTimeString(),
       }
-      setMessages((prev) => [...prev, aiMessage])
-    }, 1000)
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleRunQuery = () => {
-    setShowResults(true)
+  const handleRunQuery = async (sql: string) => {
+    setIsLoading(true)
+    const connection = getDefaultConnection()
+
+    try {
+      const response = await sendQuery(sql, connection)
+      
+      if (response.error) {
+        alert(`Error: ${response.error}`)
+      } else if (response.data) {
+        setQueryResults(response.data)
+        setCurrentSql(sql)
+        setShowResults(true)
+      }
+    } catch (error) {
+      alert(`Failed to run query: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -97,18 +141,18 @@ export default function AskQueryPage() {
                 message={message.content}
                 sql={message.sql}
                 timestamp={message.timestamp}
-                onRunQuery={message.sql ? handleRunQuery : undefined}
+                onRunQuery={message.sql ? () => handleRunQuery(message.sql!) : undefined}
               />
             )
           )}
 
           {/* Results Section */}
-          {showResults && (
+          {showResults && queryResults.length > 0 && (
             <div className="pt-4">
               <SQLResultViewer
-                data={mockResults}
-                sql="SELECT customerName, country, creditLimit FROM customers WHERE country = 'France' ORDER BY creditLimit DESC LIMIT 5;"
-                onRunQuery={handleRunQuery}
+                data={queryResults}
+                sql={currentSql}
+                onRunQuery={() => handleRunQuery(currentSql)}
               />
             </div>
           )}
@@ -116,7 +160,7 @@ export default function AskQueryPage() {
       </div>
 
       {/* Input Bar */}
-      <InputBar onSend={handleSendMessage} />
+      <InputBar onSend={handleSendMessage} disabled={isLoading} />
     </div>
   )
 }

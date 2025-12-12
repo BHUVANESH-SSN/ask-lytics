@@ -58,8 +58,20 @@
     color: hsl(var(--foreground));
     font-feature-settings: 'rlig' 1, 'calt' 1;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }  
+  /* Force white text globally */
+  h1, h2, h3, h4, h5, h6, p, span, div, label, input, textarea, button {
+    color: hsl(var(--foreground)) !important;
   }
-}
+  
+  /* Specific overrides for dark theme */
+  .text-foreground {
+    color: rgb(249, 250, 251) !important;
+  }
+  
+  .text-muted-foreground {
+    color: rgb(156, 163, 175) !important;
+  }}
 
 pre[class*='language-'] {
   border-radius: 0.5rem;
