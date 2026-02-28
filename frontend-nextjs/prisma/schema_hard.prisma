@@ -1,0 +1,12 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = "mysql://root:Bhuvi%4013@localhost:3306/classicmodels"
+}
+
+model Test {
+  id Int @id
+}

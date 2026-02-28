@@ -4,7 +4,9 @@ import { useState } from "react"
 import { Editor } from "@monaco-editor/react"
 import { Button } from "@/components/ui/button"
 import { SQLResultViewer } from "@/components/SQLResultViewer"
-import { Play, Save, FileCode } from "lucide-react"
+import { Play, FileCode, Home } from "lucide-react"
+import Link from "next/link"
+import { executeSql, getDefaultConnection } from "@/lib/api"
 
 const defaultSQL = `-- Write your SQL query here
 SELECT 
@@ -16,22 +18,55 @@ WHERE country = 'France'
 ORDER BY creditLimit DESC
 LIMIT 10;`
 
-const mockResults = [
-  { customerName: "Atelier graphique", country: "France", creditLimit: "21000.00" },
-  { customerName: "La Rochelle Gifts", country: "France", creditLimit: "118200.00" },
-  { customerName: "Euro+ Shopping Channel", country: "Spain", creditLimit: "227600.00" },
-]
-
 export default function SQLEditorPage() {
   const [sql, setSQL] = useState(defaultSQL)
   const [results, setResults] = useState<any[] | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleRunQuery = () => {
-    setResults(mockResults)
+  const handleRunQuery = async () => {
+    if (!sql.trim()) {
+      setError("Please enter a SQL query")
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+    const connection = getDefaultConnection()
+
+    try {
+      const response = await executeSql(sql, connection)
+
+      if (response.error) {
+        setError(response.error)
+        setResults(null)
+      } else if (response.data) {
+        setResults(response.data)
+        setError(null)
+      } else if (response.message) {
+        setError(null)
+        setResults([])
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to execute query")
+      setResults(null)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col relative">
+      <Link href="/" style={{
+        position: "absolute", top: "24px", left: "50%", transform: "translateX(-50%)", padding: "10px 20px",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        color: "white", textDecoration: "none", borderRadius: "10px",
+        fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px",
+        boxShadow: "0 4px 15px rgba(0,0,0,0.2)", zIndex: 50
+      }}>
+        <Home size={18} />
+        Home
+      </Link>
       {/* Header */}
       <div className="border-b border-border bg-card/50 backdrop-blur-lg p-6">
         <div className="flex items-center justify-between">
@@ -47,13 +82,9 @@ export default function SQLEditorPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2">
-              <Save className="h-4 w-4" />
-              Save
-            </Button>
-            <Button onClick={handleRunQuery} className="gap-2">
+            <Button onClick={handleRunQuery} className="gap-2" disabled={isLoading}>
               <Play className="h-4 w-4" />
-              Run Query
+              {isLoading ? "Running..." : "Run Query"}
             </Button>
           </div>
         </div>
@@ -82,6 +113,12 @@ export default function SQLEditorPage() {
 
         {/* Results Panel */}
         <div className="w-2/5 overflow-auto bg-card/30 p-6">
+          {error && (
+            <div className="rounded-lg border border-destructive bg-destructive/10 p-4 mb-4">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          )}
+
           {results ? (
             <SQLResultViewer
               data={results}
@@ -93,7 +130,7 @@ export default function SQLEditorPage() {
               <div className="text-center">
                 <Play className="mx-auto h-12 w-12 text-muted-foreground" />
                 <p className="mt-4 text-sm text-muted-foreground">
-                  Click "Run Query" to execute your SQL
+                  Click &quot;Run Query&quot; to execute your SQL
                 </p>
               </div>
             </div>

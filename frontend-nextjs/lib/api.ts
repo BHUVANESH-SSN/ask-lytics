@@ -85,6 +85,28 @@ export async function getSchema(connection: DatabaseConfig): Promise<{ schema?: 
   }
 }
 
+export async function executeSql(sql: string, connection: DatabaseConfig): Promise<QueryResponse> {
+  try {
+    const response = await fetch(`${API_URL}/execute-sql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sql,
+        connection,
+      }),
+    })
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    return {
+      error: `Failed to connect to server: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
 // Default connection from localStorage or environment
 export function getDefaultConnection(): DatabaseConfig {
   if (typeof window !== 'undefined') {
@@ -98,7 +120,7 @@ export function getDefaultConnection(): DatabaseConfig {
     host: process.env.NEXT_PUBLIC_DB_HOST || 'localhost',
     port: parseInt(process.env.NEXT_PUBLIC_DB_PORT || '3306'),
     user: process.env.NEXT_PUBLIC_DB_USER || 'root',
-    password: process.env.NEXT_PUBLIC_DB_PASSWORD || 'Bhuvi@123',
+    password: process.env.NEXT_PUBLIC_DB_PASSWORD || '',
     database: process.env.NEXT_PUBLIC_DB_NAME || 'classicmodels',
   }
 }

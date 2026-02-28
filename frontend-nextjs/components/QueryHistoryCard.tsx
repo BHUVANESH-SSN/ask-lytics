@@ -3,6 +3,7 @@
 import { Clock, Play } from "lucide-react"
 import { Card, CardContent } from "./ui/card"
 import { Button } from "./ui/button"
+import { formatRelativeTime } from "@/lib/helpers"
 
 interface QueryHistoryCardProps {
   prompt: string
@@ -26,7 +27,7 @@ export function QueryHistoryCard({
               <p className="text-sm font-medium leading-tight">{prompt}</p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                {timestamp}
+                {formatRelativeTime(timestamp)}
               </div>
             </div>
             {onRerun && (

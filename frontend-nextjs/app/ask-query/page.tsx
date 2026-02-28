@@ -5,7 +5,8 @@ import { ChatBubbleUser } from "@/components/ChatBubbleUser"
 import { ChatBubbleAI } from "@/components/ChatBubbleAI"
 import { InputBar } from "@/components/InputBar"
 import { SQLResultViewer } from "@/components/SQLResultViewer"
-import { Sparkles } from "lucide-react"
+import { Sparkles, Home } from "lucide-react"
+import Link from "next/link"
 import { sendQuery, getDefaultConnection, type DatabaseConfig } from "@/lib/api"
 
 interface Message {
@@ -64,12 +65,15 @@ export default function AskQueryPage() {
           timestamp: new Date().toLocaleTimeString(),
         }
         setMessages((prev) => [...prev, aiMessage])
-        
+
         // Store results and SQL for display
         if (response.data) {
           setQueryResults(response.data)
           setCurrentSql(response.sql || "")
           setShowResults(true)
+
+          // Save to history
+          saveToHistory(content, response.sql || "")
         }
       }
     } catch (error) {
@@ -85,13 +89,25 @@ export default function AskQueryPage() {
     }
   }
 
+  const saveToHistory = async (promptText: string, generatedSQL: string) => {
+    try {
+      await fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promptText, generatedSQL }),
+      });
+    } catch (err) {
+      console.error('Failed to save history', err);
+    }
+  }
+
   const handleRunQuery = async (sql: string) => {
     setIsLoading(true)
     const connection = getDefaultConnection()
 
     try {
       const response = await sendQuery(sql, connection)
-      
+
       if (response.error) {
         alert(`Error: ${response.error}`)
       } else if (response.data) {
@@ -107,7 +123,17 @@ export default function AskQueryPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col relative">
+      <Link href="/" style={{
+        position: "absolute", top: "24px", right: "24px", padding: "10px 20px",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        color: "white", textDecoration: "none", borderRadius: "10px",
+        fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px",
+        boxShadow: "0 4px 15px rgba(0,0,0,0.2)", zIndex: 50
+      }}>
+        <Home size={18} />
+        Home
+      </Link>
       {/* Header */}
       <div className="border-b border-border bg-card/50 backdrop-blur-lg p-6">
         <div className="mx-auto max-w-4xl">

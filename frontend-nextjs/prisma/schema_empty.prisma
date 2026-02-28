@@ -1,0 +1,1 @@
+generator client { provider = " prisma-client-js\ } model Empty { id Int @id }

@@ -54,6 +54,7 @@ export function SQLCodeBlock({ code, language = "sql" }: SQLCodeBlockProps) {
             padding: '1rem',
             background: 'transparent',
             fontSize: '0.875rem',
+            fontFamily: "'Fira Code', 'Consolas', 'Monaco', monospace",
           }}
           showLineNumbers
         >

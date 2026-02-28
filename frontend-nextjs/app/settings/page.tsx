@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Settings as SettingsIcon, Database, AlertTriangle } from "lucide-react";
+import { Settings as SettingsIcon, Database, AlertTriangle, Home } from "lucide-react";
+import Link from "next/link";
 import { getDefaultConnection, saveConnection, testConnection, type DatabaseConfig } from "@/lib/api";
 
 export default function SettingsPage() {
@@ -12,7 +13,7 @@ export default function SettingsPage() {
     host: "localhost",
     port: 3306,
     user: "root",
-    password: "Bhuvi@123",
+    password: "",
     database: "classicmodels",
   });
 
@@ -27,7 +28,7 @@ export default function SettingsPage() {
   const handleTestConnection = async () => {
     setIsTestingConnection(true);
     setConnectionStatus({});
-    
+
     try {
       const result = await testConnection(dbConfig);
       setConnectionStatus(result);
@@ -47,7 +48,17 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="container mx-auto p-8 space-y-6 max-w-4xl">
+    <div className="container mx-auto p-8 space-y-6 max-w-4xl relative">
+      <Link href="/" style={{
+        position: "absolute", top: "24px", right: "24px", padding: "10px 20px",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        color: "white", textDecoration: "none", borderRadius: "10px",
+        fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px",
+        boxShadow: "0 4px 15px rgba(0,0,0,0.2)", zIndex: 50
+      }}>
+        <Home size={18} />
+        Home
+      </Link>
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-primary">
           <SettingsIcon className="h-6 w-6 text-white" />
@@ -123,13 +134,12 @@ export default function SettingsPage() {
               Save
             </Button>
           </div>
-          
+
           {connectionStatus.success !== undefined && (
-            <div className={`flex items-center gap-2 p-3 rounded-lg ${
-              connectionStatus.success 
-                ? "bg-green-500/10 text-green-500" 
-                : "bg-red-500/10 text-red-500"
-            }`}>
+            <div className={`flex items-center gap-2 p-3 rounded-lg ${connectionStatus.success
+              ? "bg-green-500/10 text-green-500"
+              : "bg-red-500/10 text-red-500"
+              }`}>
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm">
                 {connectionStatus.message || (connectionStatus.success ? "Connection successful!" : "Connection failed")}

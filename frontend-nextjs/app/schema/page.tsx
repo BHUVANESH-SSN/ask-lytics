@@ -1,70 +1,69 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { SchemaCard } from "@/components/SchemaCard"
 import { Input } from "@/components/ui/input"
-import { Database, Search } from "lucide-react"
+import { Database, Search, Loader2, Home } from "lucide-react"
+import Link from "next/link"
+import { getDefaultConnection, getSchema } from "@/lib/api"
 
-const mockTables = [
-  {
-    name: "customers",
-    columns: [
-      { name: "customerNumber", type: "INT" },
-      { name: "customerName", type: "VARCHAR(50)" },
-      { name: "contactLastName", type: "VARCHAR(50)" },
-      { name: "contactFirstName", type: "VARCHAR(50)" },
-      { name: "phone", type: "VARCHAR(50)" },
-      { name: "addressLine1", type: "VARCHAR(50)" },
-      { name: "city", type: "VARCHAR(50)" },
-      { name: "country", type: "VARCHAR(50)" },
-      { name: "creditLimit", type: "DECIMAL(10,2)" },
-    ],
-  },
-  {
-    name: "products",
-    columns: [
-      { name: "productCode", type: "VARCHAR(15)" },
-      { name: "productName", type: "VARCHAR(70)" },
-      { name: "productLine", type: "VARCHAR(50)" },
-      { name: "productScale", type: "VARCHAR(10)" },
-      { name: "quantityInStock", type: "SMALLINT" },
-      { name: "buyPrice", type: "DECIMAL(10,2)" },
-      { name: "MSRP", type: "DECIMAL(10,2)" },
-    ],
-  },
-  {
-    name: "orders",
-    columns: [
-      { name: "orderNumber", type: "INT" },
-      { name: "orderDate", type: "DATE" },
-      { name: "requiredDate", type: "DATE" },
-      { name: "shippedDate", type: "DATE" },
-      { name: "status", type: "VARCHAR(15)" },
-      { name: "customerNumber", type: "INT" },
-    ],
-  },
-  {
-    name: "employees",
-    columns: [
-      { name: "employeeNumber", type: "INT" },
-      { name: "lastName", type: "VARCHAR(50)" },
-      { name: "firstName", type: "VARCHAR(50)" },
-      { name: "email", type: "VARCHAR(100)" },
-      { name: "officeCode", type: "VARCHAR(10)" },
-      { name: "jobTitle", type: "VARCHAR(50)" },
-    ],
-  },
-]
+interface Column {
+  name: string
+  type: string
+  nullable?: string
+  key?: string
+}
+
+interface Table {
+  table: string
+  columns: Column[]
+}
 
 export default function SchemaPage() {
   const [search, setSearch] = useState("")
+  const [tables, setTables] = useState<Table[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredTables = mockTables.filter((table) =>
-    table.name.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    fetchSchema()
+  }, [])
+
+  const fetchSchema = async () => {
+    setIsLoading(true)
+    setError(null)
+    const connection = getDefaultConnection()
+
+    try {
+      const response = await getSchema(connection)
+      if (response.error) {
+        setError(response.error)
+      } else if (response.schema) {
+        setTables(response.schema)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch schema")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const filteredTables = tables.filter((table) =>
+    table.table.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
-    <div className="container mx-auto p-8 space-y-6">
+    <div className="container mx-auto p-8 space-y-6 relative">
+      <Link href="/" style={{
+        position: "absolute", top: "24px", right: "24px", padding: "10px 20px",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        color: "white", textDecoration: "none", borderRadius: "10px",
+        fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px",
+        boxShadow: "0 4px 15px rgba(0,0,0,0.2)", zIndex: 50
+      }}>
+        <Home size={18} />
+        Home
+      </Link>
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-primary">
@@ -89,16 +88,39 @@ export default function SchemaPage() {
         />
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-center">
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
+
       {/* Tables Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredTables.map((table) => (
-          <SchemaCard
-            key={table.name}
-            tableName={table.name}
-            columns={table.columns}
-          />
-        ))}
-      </div>
+      {!isLoading && !error && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredTables.map((table) => (
+            <SchemaCard
+              key={table.table}
+              tableName={table.table}
+              columns={table.columns}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* No Results */}
+      {!isLoading && !error && filteredTables.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No tables found</p>
+        </div>
+      )}
     </div>
   )
 }

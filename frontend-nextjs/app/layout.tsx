@@ -1,9 +1,11 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Fira_Code } from "next/font/google"
 import "./globals.css"
-import { Sidebar } from "@/components/Sidebar"
+import NextAuthProvider from "@/components/NextAuthProvider"
+import { AuthGuard } from "@/components/AuthGuard"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
+const firaCode = Fira_Code({ subsets: ["latin"], variable: "--font-fira-code" })
 
 export const metadata: Metadata = {
   title: "Ask Lytics - Natural Language to SQL",
@@ -17,13 +19,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={inter.className}>
-        <div className="flex h-screen overflow-hidden bg-background">
-          <Sidebar />
-          <main className="ml-64 flex-1 overflow-auto">
+      <body className={`${inter.variable} ${firaCode.variable} font-sans`}>
+        <NextAuthProvider>
+          <AuthGuard>
             {children}
-          </main>
-        </div>
+          </AuthGuard>
+        </NextAuthProvider>
       </body>
     </html>
   )
